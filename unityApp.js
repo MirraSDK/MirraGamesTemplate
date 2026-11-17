@@ -16,6 +16,24 @@ const unityApp = {
         // Disable context menu appearing after right click outside of the unity canvas.
         window.addEventListener('contextmenu', (event) => event.preventDefault());
         document.addEventListener('contextmenu', (event) => event.preventDefault());
+
+        // A browser may refuse a cursor lock: right after Esc, without a press, or in a frame without the permission.
+        // The refusal is a rejected promise that Unity does not catch, and its loader reports that as a fatal error.
+        const canvasPrototype = window.HTMLCanvasElement && HTMLCanvasElement.prototype;
+        if (canvasPrototype && typeof canvasPrototype.requestPointerLock === "function") {
+            const requestPointerLock = canvasPrototype.requestPointerLock;
+            canvasPrototype.requestPointerLock = function () {
+                try {
+                    const result = requestPointerLock.apply(this, arguments);
+                    if (result && typeof result.catch === "function") {
+                        return result.catch((error) => console.warn("Pointer lock refused:", error));
+                    }
+                    return result;
+                } catch (error) {
+                    console.warn("Pointer lock refused:", error);
+                }
+            };
+        }
     },
 
     tryRotationLock() {
