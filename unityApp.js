@@ -16,6 +16,24 @@ const unityApp = {
         // Disable context menu appearing after right click outside of the unity canvas.
         window.addEventListener('contextmenu', (event) => event.preventDefault());
         document.addEventListener('contextmenu', (event) => event.preventDefault());
+
+        // A browser may refuse a cursor lock: right after Esc, without a press, or in a frame without the permission.
+        // The refusal is a rejected promise that Unity does not catch, and its loader reports that as a fatal error.
+        const canvasPrototype = window.HTMLCanvasElement && HTMLCanvasElement.prototype;
+        if (canvasPrototype && typeof canvasPrototype.requestPointerLock === "function") {
+            const requestPointerLock = canvasPrototype.requestPointerLock;
+            canvasPrototype.requestPointerLock = function () {
+                try {
+                    const result = requestPointerLock.apply(this, arguments);
+                    if (result && typeof result.catch === "function") {
+                        return result.catch((error) => console.warn("Pointer lock refused:", error));
+                    }
+                    return result;
+                } catch (error) {
+                    console.warn("Pointer lock refused:", error);
+                }
+            };
+        }
     },
 
     tryRotationLock() {
@@ -224,6 +242,11 @@ const unityApp = {
                     }
                 }
             },
+            // Without this handler the Unity loader reports a runtime error with a blocking alert dialog.
+            errorHandler: (message, filename, lineno) => {
+                unityApp.showLoadError(message + " (" + filename + ":" + lineno + ")");
+                return true;
+            },
         };
 
         // By default Unity keeps WebGL canvas render target size matched with
@@ -276,10 +299,20 @@ const unityApp = {
                 canvas.after(diagnostics_icon);
                 #endif
             }).catch((message) => {
-                alert(message);
+                unityApp.showLoadError(message);
             });
         };
         document.body.appendChild(script);
+    },
+
+    // Portals forbid browser dialogs, so the detail goes to the console and the player sees a short text on the page.
+    showLoadError: function (message) {
+        console.error(message);
+        const element = document.querySelector("#unity-load-error");
+        if (element) {
+            element.textContent = "The game stopped because of an error. Reload the page to try again.";
+            element.hidden = false;
+        }
     },
 
     isMobile: function () {
