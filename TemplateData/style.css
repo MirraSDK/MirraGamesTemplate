@@ -71,6 +71,19 @@ img {
     display: none
 }
 
+#unity-load-error {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    max-width: 80%;
+    padding: 12px 16px;
+    background: rgba(0, 0, 0, 0.8);
+    color: #ffffff;
+    font: 14px sans-serif;
+    text-align: center;
+}
+
 #unity-logo {
     box-sizing: border-box;
     -moz-box-sizing: border-box;

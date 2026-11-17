@@ -224,6 +224,11 @@ const unityApp = {
                     }
                 }
             },
+            // Without this handler the Unity loader reports a runtime error with a blocking alert dialog.
+            errorHandler: (message, filename, lineno) => {
+                unityApp.showLoadError(message + " (" + filename + ":" + lineno + ")");
+                return true;
+            },
         };
 
         // By default Unity keeps WebGL canvas render target size matched with
@@ -276,10 +281,20 @@ const unityApp = {
                 canvas.after(diagnostics_icon);
                 #endif
             }).catch((message) => {
-                alert(message);
+                unityApp.showLoadError(message);
             });
         };
         document.body.appendChild(script);
+    },
+
+    // Portals forbid browser dialogs, so the detail goes to the console and the player sees a short text on the page.
+    showLoadError: function (message) {
+        console.error(message);
+        const element = document.querySelector("#unity-load-error");
+        if (element) {
+            element.textContent = "The game stopped because of an error. Reload the page to try again.";
+            element.hidden = false;
+        }
     },
 
     isMobile: function () {
