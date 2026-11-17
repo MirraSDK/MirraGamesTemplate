@@ -6,6 +6,31 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=yes" />
 
+    <!-- In-memory stand-in for browser storage that throws. A browser that blocks site data for the game frame
+         throws as soon as localStorage is read, which stops the SDK at startup. Progress then lasts for the session. -->
+    <script>
+        (function () {
+            function memoryStorage() {
+                var data = {};
+                return {
+                    getItem: function (key) { return Object.prototype.hasOwnProperty.call(data, key) ? data[key] : null; },
+                    setItem: function (key, value) { data[key] = String(value); },
+                    removeItem: function (key) { delete data[key]; },
+                    clear: function () { data = {}; },
+                    key: function (index) { return Object.keys(data)[index] || null; },
+                    get length() { return Object.keys(data).length; }
+                };
+            }
+            ["localStorage", "sessionStorage"].forEach(function (name) {
+                try {
+                    window[name].getItem("storage-test");
+                } catch (error) {
+                    Object.defineProperty(window, name, { value: memoryStorage(), configurable: true });
+                }
+            });
+        })();
+    </script>
+
     <!-- Page info and stylesheets -->
     <title>{{{ PRODUCT_NAME }}}</title>
     <link rel="shortcut icon" href="TemplateData/favicon.ico">
